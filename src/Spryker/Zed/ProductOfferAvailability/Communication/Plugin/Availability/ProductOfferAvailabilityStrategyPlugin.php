@@ -11,17 +11,18 @@ use Generated\Shared\Transfer\ProductAvailabilityCriteriaTransfer;
 use Generated\Shared\Transfer\ProductConcreteAvailabilityTransfer;
 use Generated\Shared\Transfer\ProductOfferAvailabilityRequestTransfer;
 use Generated\Shared\Transfer\StoreTransfer;
-use Spryker\Zed\AvailabilityExtension\Dependency\Plugin\AvailabilityStockProviderStrategyPluginInterface;
+use Spryker\Zed\AvailabilityExtension\Dependency\Plugin\AvailabilityStrategyPluginInterface;
 use Spryker\Zed\Kernel\Communication\AbstractPlugin;
 
 /**
  * @method \Spryker\Zed\ProductOfferAvailability\Business\ProductOfferAvailabilityFacadeInterface getFacade()
+ * @method \Spryker\Zed\ProductOfferAvailability\ProductOfferAvailabilityConfig getConfig()
  */
-class ProductOfferAvailabilityStockProviderStrategyPlugin extends AbstractPlugin implements AvailabilityStockProviderStrategyPluginInterface
+class ProductOfferAvailabilityStrategyPlugin extends AbstractPlugin implements AvailabilityStrategyPluginInterface
 {
     /**
      * {@inheritDoc}
-     * - Checks if product offer availability requested, and strategy should be applied.
+     * - Returns true if ProductAvailabilityCriteriaTransfer contains product offer reference.
      *
      * @api
      *
@@ -36,9 +37,7 @@ class ProductOfferAvailabilityStockProviderStrategyPlugin extends AbstractPlugin
         StoreTransfer $storeTransfer,
         ?ProductAvailabilityCriteriaTransfer $productAvailabilityCriteriaTransfer = null
     ): bool {
-        return $productAvailabilityCriteriaTransfer
-            && $productAvailabilityCriteriaTransfer->getProductOffer()
-            && $productAvailabilityCriteriaTransfer->getProductOffer()->getProductOfferReference();
+        return $productAvailabilityCriteriaTransfer && $productAvailabilityCriteriaTransfer->getProductOfferReference();
     }
 
     /**
@@ -58,14 +57,16 @@ class ProductOfferAvailabilityStockProviderStrategyPlugin extends AbstractPlugin
         StoreTransfer $storeTransfer,
         ?ProductAvailabilityCriteriaTransfer $productAvailabilityCriteriaTransfer = null
     ): ?ProductConcreteAvailabilityTransfer {
-        $productAvailabilityCriteriaTransfer
-            ->requireProductOffer()
-            ->getProductOffer()
-                ->requireProductOfferReference();
+        if (!$productAvailabilityCriteriaTransfer) {
+            return null;
+        }
+
+        $productAvailabilityCriteriaTransfer->requireProductOfferReference();
 
         $productOfferAvailabilityRequestTransfer = (new ProductOfferAvailabilityRequestTransfer())
+            ->setSku($sku)
             ->setStore($storeTransfer)
-            ->setProductOfferReference($productAvailabilityCriteriaTransfer->getProductOffer()->getProductOfferReference());
+            ->setProductOfferReference($productAvailabilityCriteriaTransfer->getProductOfferReference());
 
         return $this->getFacade()
             ->findProductConcreteAvailabilityForRequest($productOfferAvailabilityRequestTransfer);
